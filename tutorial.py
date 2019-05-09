@@ -29,6 +29,31 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 
 SLACK_CONN_ID = 'slack'
+
+def task_fail_slack_alert(context):
+    slack_webhook_token = BaseHook.get_connection(SLACK_CONN_ID).password
+    slack_msg = """
+            :red_circle: Task Failed. 
+            *Task*: {task}  
+            *Dag*: {dag} 
+            *Execution Time*: {exec_date}  
+            *Log Url*: {log_url} 
+            """.format(
+            task=context.get('task_instance').task_id,
+            dag=context.get('task_instance').dag_id,
+            ti=context.get('task_instance'),
+            exec_date=context.get('execution_date'),
+            log_url=context.get('task_instance').log_url,
+        )
+    failed_alert = SlackWebhookOperator(
+        task_id='slack_test',
+        http_conn_id='slack',
+        webhook_token=slack_webhook_token,
+        message=slack_msg,
+        username='airflow',
+        dag=dag)
+    return failed_alert.execute(context=context)
+
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
 default_args = {
@@ -56,29 +81,6 @@ default_args = {
 
 dag = DAG('tutorial', default_args=default_args, schedule_interval=timedelta(days=1))
 
-def task_fail_slack_alert(context):
-    slack_webhook_token = BaseHook.get_connection(SLACK_CONN_ID).password
-    slack_msg = """
-            :red_circle: Task Failed. 
-            *Task*: {task}  
-            *Dag*: {dag} 
-            *Execution Time*: {exec_date}  
-            *Log Url*: {log_url} 
-            """.format(
-            task=context.get('task_instance').task_id,
-            dag=context.get('task_instance').dag_id,
-            ti=context.get('task_instance'),
-            exec_date=context.get('execution_date'),
-            log_url=context.get('task_instance').log_url,
-        )
-    failed_alert = SlackWebhookOperator(
-        task_id='slack_test',
-        http_conn_id='slack',
-        webhook_token=slack_webhook_token,
-        message=slack_msg,
-        username='airflow',
-        dag=dag)
-    return failed_alert.execute(context=context)
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(
@@ -92,20 +94,4 @@ t2 = BashOperator(
     bash_command='sleep 5',
     retries=3,
     dag=dag)
-
-templated_command = """
-    {% for i in range(5) %}
-        echo "{{ ds }}"
-        echo "{{ macros.ds_add(ds, 7)}}"
-        echo "{{ params.my_param }}"
-    {% endfor %}
-"""
-
-t3 = BashOperator(
-    task_id='templated',
-    bash_command=templated_command,
-    params={'my_param': 'Parameter I passed in'},
-    dag=dag)
-
-t2.set_upstream(t1)
-t3.set_upstream(t1)
+t1 >> t2 >> 
