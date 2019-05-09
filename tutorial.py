@@ -94,4 +94,4 @@ t2 = BashOperator(
     bash_command='sleep 5',
     retries=3,
     dag=dag)
-t1 >> t2 >> 
+t1 >> t2
