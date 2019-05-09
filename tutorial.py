@@ -22,9 +22,9 @@
 Documentation that goes along with the Airflow tutorial located
 [here](https://airflow.apache.org/tutorial.html)
 """
-import airflow
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from datetime import datetime, timedelta
 from airflow.hooks.base_hook import BaseHook
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 
