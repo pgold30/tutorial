@@ -91,7 +91,7 @@ t1 = BashOperator(
 
 t2 = BashOperator(
     task_id='sleep',
-    bash_command='sleep 5',
+    bash_command='exit 1',
     retries=3,
     dag=dag)
 t1 >> t2
